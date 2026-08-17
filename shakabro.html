@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>shakabro</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #000000;
+    --white: #ffffff;
+    --gray-100: #f5f5f5;
+    --gray-300: #aaaaaa;
+    --gray-500: #555555;
+    --gray-700: #222222;
+    --gray-800: #111111;
+    --border: #2a2a2a;
+    --accent-good: #e8ff60;
+    --accent-fair: #ffaa00;
+    --accent-poor: #ff4444;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  html { font-size: 16px; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: var(--font-display);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* LAYOUT */
+  .app {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 32px 0 28px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 0.12em;
+    text-transform: lowercase;
+    color: var(--white);
+  }
+
+  .location-pill {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--gray-500);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* LOADING STATE */
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 20px;
+  }
+
+  .loading-bar {
+    width: 200px;
+    height: 1px;
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .loading-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: var(--white);
+    animation: sweep 1.2s ease-in-out infinite;
+  }
+
+  @keyframes sweep {
+    to { left: 100%; }
+  }
+
+  .loading-text {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--gray-500);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* ERROR STATE */
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .error-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--accent-poor);
+  }
+
+  .error-msg {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--gray-500);
+    max-width: 420px;
+    line-height: 1.6;
+  }
+
+  .retry-btn {
+    margin-top: 8px;
+    padding: 10px 28px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--white);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  .retry-btn:hover { border-color: var(--white); }
+
+  /* HERO */
+  .hero {
+    padding: 60px 0 48px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .rating-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--gray-500);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .hero-flex {
+    display: flex;
+    align-items: flex-end;
+    gap: 40px;
+    flex-wrap: wrap;
+  }
+
+  .hero-rating {
+    font-size: clamp(3.5rem, 10vw, 7rem);
+    font-weight: 700;
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    transition: color 0.4s ease;
+  }
+
+  .hero-rating.firing { color: var(--accent-good); }
+  .hero-rating.good   { color: var(--accent-good); opacity: 0.82; }
+  .hero-rating.fair   { color: var(--accent-fair); }
+  .hero-rating.poor   { color: var(--accent-poor); }
+
+  .hero-right {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 6px;
+  }
+
+  .score-block {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .score-num {
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .score-denom {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    color: var(--gray-500);
+  }
+
+  .hero-summary {
+    font-size: 0.9rem;
+    color: var(--gray-300);
+    font-weight: 400;
+    line-height: 1.5;
+    max-width: 340px;
+  }
+
+  /* LAST UPDATED */
+  .meta-row {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .meta-item {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--gray-500);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .meta-item span { color: var(--gray-300); }
+
+  /* STATS GRID */
+  .section-header {
+    padding: 40px 0 20px;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--gray-500);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    border-left: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+    margin-bottom: 0;
+  }
+
+  .stat-card {
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: background 0.2s;
+  }
+
+  .stat-card:hover { background: var(--gray-800); }
+
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--gray-500);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .stat-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .stat-sub {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--gray-300);
+    letter-spacing: 0.04em;
+  }
+
+  .stat-quality {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border: 1px solid;
+    margin-top: 2px;
+    width: fit-content;
+  }
+
+  .stat-quality.good  { color: var(--accent-good);  border-color: var(--accent-good);  }
+  .stat-quality.fair  { color: var(--accent-fair);  border-color: var(--accent-fair);  }
+  .stat-quality.poor  { color: var(--accent-poor);  border-color: var(--accent-poor);  }
+  .stat-quality.ideal { color: var(--accent-good);  border-color: var(--accent-good);  }
+
+  /* DIRECTION INDICATOR */
+  .dir-arrow {
+    font-size: 1.3rem;
+    display: inline-block;
+    margin-left: 6px;
+    transition: transform 0.5s ease;
+  }
+
+  /* TIMELINE */
+  .timeline-section {
+    margin-top: 0;
+  }
+
+  .timeline-days {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border-left: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+  }
+
+  .timeline-day {
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .day-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .time-slots {
+    display: flex;
+    gap: 0;
+  }
+
+  .time-slot {
+    flex: 1;
+    padding: 18px 12px 16px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: background 0.2s;
+  }
+
+  .time-slot:last-child { border-right: none; }
+  .time-slot:hover { background: var(--gray-800); }
+
+  .time-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--gray-500);
+    letter-spacing: 0.08em;
+  }
+
+  .time-score {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .time-bar-wrap {
+    height: 2px;
+    background: var(--border);
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .time-bar {
+    height: 2px;
+    transition: width 0.6s ease;
+  }
+
+  .time-bar.firing { background: var(--accent-good); }
+  .time-bar.good   { background: var(--accent-good); opacity: 0.75; }
+  .time-bar.fair   { background: var(--accent-fair); }
+  .time-bar.poor   { background: var(--accent-poor); }
+
+  .time-rating-tag {
+    font-family: var(--font-mono);
+    font-size: 0.52rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+  }
+
+  /* WIND ROSE */
+  .compass-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .compass-svg { flex-shrink: 0; }
+
+  /* FOOTER */
+  footer {
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .footer-text {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--gray-500);
+    letter-spacing: 0.08em;
+  }
+
+  .refresh-btn {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  .refresh-btn:hover { color: var(--white); border-color: var(--white); }
+
+  .refresh-btn.spinning { pointer-events: none; opacity: 0.4; }
+
+  @media (max-width: 580px) {
+    .hero-flex { gap: 24px; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .timeline-days { grid-template-columns: 1fr; }
+    .time-slot { padding: 14px 10px 12px; }
+    .stat-value { font-size: 1.8rem; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="logo">shakabro</div>
+    <div class="location-pill">Villingili &mdash; 4.173, 73.488</div>
+  </header>
+
+  <div id="root"></div>
+
+  <footer>
+    <div class="footer-text">Data via Windy Point Forecast API &mdash; MALDIVES SURF INTEL</div>
+    <button class="refresh-btn" id="refresh-btn" onclick="fetchData()">Refresh</button>
+  </footer>
+
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────
+const LAT = 4.173;
+const LON = 73.488;
+const WINDY_API_KEY = '0RelqdPaE3aFo97wyfOKEpTfYE7VqtZ8';
+const TIME_SLOTS = ['08:00', '11:00', '14:00', '17:00'];
+
+// ── SCORING HELPERS ──────────────────────────────────────────────
+function scoreSwellHeight(h) {
+  if (h >= 1.5) return 10;
+  if (h >= 1.2) return 9;
+  if (h >= 1.0) return 7;
+  if (h >= 0.7) return 5;
+  if (h >= 0.4) return 3;
+  return 1;
+}
+
+function scoreSwellPeriod(p) {
+  if (p >= 13) return 10;
+  if (p >= 11) return 9;
+  if (p >= 10) return 7;
+  if (p === 9)  return 4;
+  if (p >= 7)  return 2;
+  return 1;
+}
+
+function scoreSwellDir(d) {
+  // Ideal: 120–160 (SE origin)
+  const diff = Math.min(Math.abs(d - 140), 360 - Math.abs(d - 140));
+  if (diff <= 20) return 10;
+  if (diff <= 40) return 7;
+  if (diff <= 70) return 4;
+  return 2;
+}
+
+function scoreWind(speed, dir) {
+  // Ideal dir: 240–290 (W/WSW offshore), speed 7–13 knots
+  const diffDir = Math.min(Math.abs(dir - 265), 360 - Math.abs(dir - 265));
+  let dirScore = diffDir <= 25 ? 10 : diffDir <= 45 ? 7 : diffDir <= 70 ? 4 : 1;
+  // Calm wind is ok if direction is wrong
+  if (speed < 3) return 6;
+
+  let speedScore = 10;
+  if (speed > 20) speedScore = 2;
+  else if (speed > 16) speedScore = 4;
+  else if (speed > 13) speedScore = 6;
+  else if (speed < 5)  speedScore = 7;
+
+  return Math.round((dirScore * 0.65 + speedScore * 0.35));
+}
+
+function overallScore(height, period, swellDir, windSpeed, windDir) {
+  const sh = scoreSwellHeight(height);
+  const sp = scoreSwellPeriod(period);
+  const sd = scoreSwellDir(swellDir);
+  const wd = scoreWind(windSpeed, windDir);
+  // Weighted
+  return Math.round(sh * 0.30 + sp * 0.30 + sd * 0.20 + wd * 0.20);
+}
+
+function ratingLabel(score) {
+  if (score >= 9) return 'FIRING';
+  if (score >= 7) return 'GOOD';
+  if (score >= 5) return 'FAIR';
+  return 'POOR';
+}
+
+function ratingClass(score) {
+  if (score >= 9) return 'firing';
+  if (score >= 7) return 'good';
+  if (score >= 5) return 'fair';
+  return 'poor';
+}
+
+function qualityTag(score) {
+  if (score >= 8) return { label: 'IDEAL', cls: 'ideal' };
+  if (score >= 6) return { label: 'GOOD', cls: 'good' };
+  if (score >= 4) return { label: 'FAIR', cls: 'fair' };
+  return { label: 'POOR', cls: 'poor' };
+}
+
+// ── DIRECTION UTILITIES ─────────────────────────────────────────
+function degToCompass(deg) {
+  const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return dirs[Math.round(deg / 22.5) % 16];
+}
+
+function arrowStyle(deg) {
+  return `transform: rotate(${deg}deg); display:inline-block;`;
+}
+
+// Swell direction: the origin bearing, arrow points where waves come FROM
+function swellArrowDeg(originDeg) {
+  return (originDeg + 180) % 360; // flip to show travel direction
+}
+
+// ── SESSION SUMMARY ─────────────────────────────────────────────
+function buildSummary(score, height, period, swellDir, windSpeed, windDir) {
+  const rating = ratingLabel(score);
+  const windGood  = scoreWind(windSpeed, windDir) >= 7;
+  const swellGood = scoreSwellHeight(height) >= 7 && scoreSwellPeriod(period) >= 7;
+  const swellDirGood = scoreSwellDir(swellDir) >= 7;
+
+  if (rating === 'FIRING') return `${height.toFixed(1)}m/${period}s swell with clean ${degToCompass(windDir)} winds — conditions are dialled in.`;
+  if (rating === 'GOOD') {
+    if (!windGood) return `Solid ${height.toFixed(1)}m swell at ${period}s, but winds are less than ideal — still very surfable.`;
+    if (!swellDirGood) return `Decent power in the water, though swell angle is off-axis — look for corners.`;
+    return `Good ${height.toFixed(1)}m swell at ${period}s with ${degToCompass(windDir)} winds — worth getting out.`;
+  }
+  if (rating === 'FAIR') {
+    if (!swellGood) return `Swell is marginal at ${height.toFixed(1)}m/${period}s — works for beginners or longboards.`;
+    return `Swell has some size but conditions are messy — proceed with patience.`;
+  }
+  return `Flat or blown-out — better to wax down the board at home for now.`;
+}
+
+// ── COMPASS SVG ─────────────────────────────────────────────────
+function compassSVG(deg, size = 36) {
+  const rad = (deg - 90) * Math.PI / 180;
+  const cx = size / 2, cy = size / 2, r = size / 2 - 3;
+  const tipX = cx + r * Math.cos(rad);
+  const tipY = cy + r * Math.sin(rad);
+  return `<svg class="compass-svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#2a2a2a" stroke-width="1"/>
+    <line x1="${cx}" y1="${cy}" x2="${tipX}" y2="${tipY}" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="${tipX}" cy="${tipY}" r="2.5" fill="white"/>
+    <circle cx="${cx}" cy="${cy}" r="1.5" fill="#555"/>
+  </svg>`;
+}
+
+// ── WINDY API FETCH ─────────────────────────────────────────────
+async function fetchWindyData() {
+  const url = 'https://api.windy.com/api/point-forecast/v2';
+  const body = {
+    lat: LAT,
+    lon: LON,
+    model: 'gfs',
+    parameters: ['waves', 'wind', 'swell1'],
+    levels: ['surface'],
+    key: WINDY_API_KEY
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return res.json();
+}
+
+// ── PARSE WINDY DATA ────────────────────────────────────────────
+function parseWindy(data) {
+  const ts = data.ts; // array of unix timestamps (ms)
+  const now = Date.now();
+
+  // Helpers to get nearest-time index
+  function nearestIdx(targetMs) {
+    let best = 0, diff = Infinity;
+    ts.forEach((t, i) => { const d = Math.abs(t - targetMs); if (d < diff) { diff = d; best = i; } });
+    return best;
+  }
+
+  // Current index
+  const curIdx = nearestIdx(now);
+
+  // Field keys
+  const heightKey  = Object.keys(data).find(k => k.includes('waves_height') || k.includes('swell1_height'));
+  const periodKey  = Object.keys(data).find(k => k.includes('waves_period') || k.includes('swell1_period'));
+  const dirKey     = Object.keys(data).find(k => k.includes('waves_direction') || k.includes('swell1_direction'));
+  const windUKey   = Object.keys(data).find(k => k.includes('wind_u-surface'));
+  const windVKey   = Object.keys(data).find(k => k.includes('wind_v-surface'));
+
+  function getVal(key, idx) {
+    if (!key || !data[key]) return null;
+    const arr = data[key];
+    return arr[idx] !== undefined ? arr[idx] : null;
+  }
+
+  function windComponents(idx) {
+    const u = getVal(windUKey, idx);
+    const v = getVal(windVKey, idx);
+    if (u === null || v === null) return { speed: 0, dir: 0 };
+    const speedMs = Math.sqrt(u * u + v * v);
+    const speedKt = speedMs * 1.94384;
+    // Meteorological direction: where wind comes FROM
+    const dir = (Math.atan2(-u, -v) * 180 / Math.PI + 360) % 360;
+    return { speed: speedKt, dir };
+  }
+
+  // Build current reading
+  const curHeight = getVal(heightKey, curIdx) || 0;
+  const curPeriod = Math.round(getVal(periodKey, curIdx) || 0);
+  const curSwellDir = getVal(dirKey, curIdx) || 0;
+  const curWind = windComponents(curIdx);
+
+  // Build timeline for today + tomorrow at 08, 11, 14, 17
+  const today = new Date();
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+
+  function daySlots(date) {
+    return [8, 11, 14, 17].map(hour => {
+      const target = new Date(date);
+      target.setHours(hour, 0, 0, 0);
+      const idx = nearestIdx(target.getTime());
+      const h   = getVal(heightKey, idx) || 0;
+      const p   = Math.round(getVal(periodKey, idx) || 0);
+      const sd  = getVal(dirKey, idx) || 0;
+      const w   = windComponents(idx);
+      const score = overallScore(h, p, sd, w.speed, w.dir);
+      return { hour: `${hour}:00`, score, h, p, sd, w };
+    });
+  }
+
+  return {
+    current: {
+      height: curHeight,
+      period: curPeriod,
+      swellDir: curSwellDir,
+      wind: curWind,
+      tide: '--' // Windy doesn't return tide; placeholder
+    },
+    today: daySlots(today),
+    tomorrow: daySlots(tomorrow),
+    updated: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    todayLabel: today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase(),
+    tomorrowLabel: tomorrow.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()
+  };
+}
+
+// ── RENDER LOADING ──────────────────────────────────────────────
+function renderLoading() {
+  document.getElementById('root').innerHTML = `
+    <div class="loading-state">
+      <div class="loading-bar"></div>
+      <div class="loading-text">Reading the ocean</div>
+    </div>`;
+}
+
+// ── RENDER ERROR ────────────────────────────────────────────────
+function renderError(msg) {
+  document.getElementById('root').innerHTML = `
+    <div class="error-state">
+      <div class="error-title">No Signal</div>
+      <div class="error-msg">${msg}</div>
+      <button class="retry-btn" onclick="fetchData()">Try Again</button>
+    </div>`;
+}
+
+// ── RENDER APP ──────────────────────────────────────────────────
+function renderApp(parsed) {
+  const { current, today, tomorrow, updated, todayLabel, tomorrowLabel } = parsed;
+  const { height, period, swellDir, wind } = current;
+
+  const score = overallScore(height, period, swellDir, wind.speed, wind.dir);
+  const rating = ratingLabel(score);
+  const rClass = ratingClass(score);
+  const summary = buildSummary(score, height, period, swellDir, wind.speed, wind.dir);
+
+  // Stat quality tags
+  const htQ  = qualityTag(scoreSwellHeight(height));
+  const pQ   = qualityTag(scoreSwellPeriod(period));
+  const sdQ  = qualityTag(scoreSwellDir(swellDir));
+  const wQ   = qualityTag(scoreWind(wind.speed, wind.dir));
+
+  // Swell travel direction (from origin)
+  const swellTravelDeg = swellArrowDeg(swellDir);
+  const windDeg = wind.dir;
+
+  const html = `
+    <!-- HERO -->
+    <div class="hero">
+      <div class="rating-label">Current Conditions</div>
+      <div class="hero-flex">
+        <div class="hero-rating ${rClass}">${rating}</div>
+        <div class="hero-right">
+          <div class="score-block">
+            <div class="score-num">${score}</div>
+            <div class="score-denom">/10</div>
+          </div>
+          <div class="hero-summary">${summary}</div>
+        </div>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item">Updated <span>${updated}</span></div>
+        <div class="meta-item">Model <span>GFS</span></div>
+        <div class="meta-item">Location <span>Villingili, MV</span></div>
+      </div>
+    </div>
+
+    <!-- STATS GRID -->
+    <div class="section-header">Conditions Breakdown</div>
+    <div class="stats-grid">
+
+      <div class="stat-card">
+        <div class="stat-label">Swell Height</div>
+        <div class="stat-value">${height.toFixed(1)}<span style="font-size:1.1rem;color:#555;font-weight:400">m</span></div>
+        <div class="compass-row">
+          ${compassSVG(swellTravelDeg)}
+          <div>
+            <div class="stat-sub">${degToCompass(swellDir)} origin &mdash; ${Math.round(swellDir)}&deg;</div>
+          </div>
+        </div>
+        <div class="stat-quality ${htQ.cls}">${htQ.label}</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Swell Period</div>
+        <div class="stat-value">${period}<span style="font-size:1.1rem;color:#555;font-weight:400">s</span></div>
+        <div class="stat-sub">${period >= 11 ? 'Long period — quality energy' : period >= 9 ? 'Mid period — decent' : 'Short period — weak'}</div>
+        <div class="stat-quality ${pQ.cls}">${pQ.label}</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Wind</div>
+        <div class="stat-value">${Math.round(wind.speed)}<span style="font-size:1.1rem;color:#555;font-weight:400">kt</span></div>
+        <div class="compass-row">
+          ${compassSVG(windDeg)}
+          <div>
+            <div class="stat-sub">${degToCompass(wind.dir)} &mdash; ${Math.round(wind.dir)}&deg;</div>
+          </div>
+        </div>
+        <div class="stat-quality ${wQ.cls}">${wQ.label}</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Swell Direction</div>
+        <div class="stat-value" style="font-size:1.6rem;letter-spacing:-0.01em;">${degToCompass(swellDir)}</div>
+        <div class="stat-sub">${Math.round(swellDir)}&deg; origin &mdash; ideal is SE (120&ndash;160&deg;)</div>
+        <div class="stat-quality ${sdQ.cls}">${sdQ.label}</div>
+      </div>
+
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="section-header timeline-section">Session Windows</div>
+    <div class="timeline-days">
+      ${renderDayTimeline(todayLabel, today)}
+      ${renderDayTimeline(tomorrowLabel, tomorrow)}
+    </div>
+  `;
+
+  document.getElementById('root').innerHTML = html;
+}
+
+function renderDayTimeline(label, slots) {
+  const slotHTML = slots.map(s => {
+    const rc = ratingClass(s.score);
+    const barW = Math.round(s.score * 10);
+    return `
+      <div class="time-slot">
+        <div class="time-label">${s.hour}</div>
+        <div class="time-score" style="color:${rc === 'firing' || rc === 'good' ? 'var(--accent-good)' : rc === 'fair' ? 'var(--accent-fair)' : 'var(--accent-poor)'}">${s.score}</div>
+        <div class="time-bar-wrap"><div class="time-bar ${rc}" style="width:${barW}%"></div></div>
+        <div class="time-rating-tag">${ratingLabel(s.score)}</div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="timeline-day">
+      <div class="day-label">${label}</div>
+      <div class="time-slots">${slotHTML}</div>
+    </div>`;
+}
+
+// ── MAIN ────────────────────────────────────────────────────────
+async function fetchData() {
+  const btn = document.getElementById('refresh-btn');
+  if (btn) btn.classList.add('spinning');
+
+  renderLoading();
+
+  try {
+    const raw = await fetchWindyData();
+    const parsed = parseWindy(raw);
+    renderApp(parsed);
+  } catch (err) {
+    console.error(err);
+    renderError(`Could not reach the Windy API. Check your connection or API key.<br><br><code style="color:#444">${err.message}</code>`);
+  } finally {
+    if (btn) btn.classList.remove('spinning');
+  }
+}
+
+// Boot
+fetchData();
+
+// Auto-refresh every 30 min
+setInterval(fetchData, 30 * 60 * 1000);
+</script>
+</body>
+</html>
