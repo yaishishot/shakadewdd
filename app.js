@@ -61,7 +61,7 @@ function generateDescription(forecast, result) {
 
 async function fetchForecastData() {
     // IMPORTANT: Replace this URL with your actual Render URL once you deploy the backend!
-    const response = await fetch('https://surf-forecast-api.onrender.com/api/forecast', {
+    const response = await fetch('https://male-surf-forecast.onrender.com', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lat: surfConfig.location.latitude, lon: surfConfig.location.longitude })
