@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malé Surf Forecast</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <p class="location-subtitle">Malé, Maldives</p>
+            <h1>🏄 Should I Surf Today?</h1>
+        </header>
+
+        <main id="main-dashboard" class="dashboard-card skeleton">
+            <div class="loading-text">Loading forecast data...</div>
+        </main>
+
+        <div id="best-window-container"></div>
+
+        <section class="timeline-section">
+            <h2>Today's Timeline</h2>
+            <div id="hourly-timeline" class="hourly-scroll"></div>
+        </section>
+
+        <section class="weekly-section">
+            <h2>7-Day Outlook</h2>
+            <div id="weekly-forecast" class="weekly-scroll"></div>
+        </section>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
