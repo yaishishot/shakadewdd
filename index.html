@@ -218,6 +218,147 @@ footer{padding:28px 0;border-top:var(--border);margin-top:32px;display:flex;alig
 /* ── ENTER ANIMATIONS ────────────────────────── */
 .fade-up{opacity:0;transform:translateY(20px);transition:opacity 0.5s cubic-bezier(.22,1,.36,1),transform 0.5s cubic-bezier(.22,1,.36,1);}
 .fade-up.visible{opacity:1;transform:translateY(0);}
+
+/* ══════════════════════════════════════════════
+   MOTION LAYER — cinematic, physics, magnetic
+══════════════════════════════════════════════ */
+
+/* Custom cursor */
+#cursor-dot{position:fixed;top:0;left:0;width:8px;height:8px;background:#fff;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:9999;mix-blend-mode:difference;transition:transform 0.08s;}
+#cursor-ring{position:fixed;top:0;left:0;width:36px;height:36px;border:1px solid rgba(255,255,255,0.35);border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:9998;transition:width 0.35s cubic-bezier(.34,1.56,.64,1),height 0.35s cubic-bezier(.34,1.56,.64,1),border-color 0.3s,opacity 0.3s;}
+#cursor-ring.hovering{width:58px;height:58px;border-color:rgba(255,255,255,0.12);}
+#cursor-ring.clicking{width:22px;height:22px;border-color:rgba(255,255,255,0.9);}
+body{cursor:none;}
+
+/* Page entrance — hard clip wipe upward */
+@keyframes pageReveal{
+  0%{clip-path:inset(100% 0 0 0);opacity:0;}
+  2%{opacity:1;}
+  100%{clip-path:inset(0% 0 0 0);}
+}
+.app{animation:pageReveal 1s cubic-bezier(.16,1,.3,1) forwards;}
+
+/* Header drop-in */
+header{opacity:0;animation:headerIn 0.85s cubic-bezier(.16,1,.3,1) 0.1s forwards;}
+@keyframes headerIn{from{opacity:0;transform:translateY(-100%);}to{opacity:1;transform:translateY(0);}}
+
+/* Logo inner reveal */
+.logo-inner{display:inline-block;animation:logoSlide 1s cubic-bezier(.16,1,.3,1) 0.25s both;}
+@keyframes logoSlide{from{transform:translateY(110%);}to{transform:translateY(0);}}
+
+/* Location bar scan-line sweep */
+.location-bar{position:relative;overflow:hidden;}
+.location-bar::after{content:'';position:absolute;left:-100%;top:0;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent);animation:scanLine 2s cubic-bezier(.4,0,.2,1) 0.9s forwards;pointer-events:none;}
+@keyframes scanLine{0%{left:-60%;}100%{left:160%;}}
+
+/* Hero rating: char-by-char clip reveal */
+.hero-rating{overflow:hidden !important;opacity:1 !important;transform:none !important;}
+.hero-rating .char-wrap{display:inline-block;overflow:hidden;vertical-align:bottom;}
+.hero-rating .char{display:inline-block;animation:charReveal 0.65s cubic-bezier(.16,1,.3,1) both;}
+@keyframes charReveal{from{transform:translateY(110%) skewY(5deg);opacity:0;}to{transform:translateY(0) skewY(0deg);opacity:1;}}
+
+/* Score ring spin-in */
+.score-ring-wrap{opacity:1 !important;transform:none !important;}
+.score-ring-svg{animation:ringIn 1.1s cubic-bezier(.34,1.56,.64,1) 0.45s both;}
+@keyframes ringIn{0%{transform:scale(0) rotate(-200deg);opacity:0;}70%{opacity:1;}100%{transform:scale(1) rotate(0deg);opacity:1;}}
+
+/* Stat cards: 3-D flip entrance + magnetic hover (JS adds transform) */
+.stat-card.fade-up{
+  opacity:0;
+  transform:perspective(700px) rotateX(18deg) translateY(20px) scale(0.97);
+  transition:opacity 0.55s cubic-bezier(.22,1,.36,1),transform 0.55s cubic-bezier(.22,1,.36,1),background 0.25s;
+}
+.stat-card.fade-up.visible{opacity:1;transform:perspective(700px) rotateX(0deg) translateY(0) scale(1);}
+
+/* Stat value shimmer after reveal */
+.stat-value{position:relative;overflow:hidden;}
+.stat-value::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent);transform:translateX(-100%);animation:shimmer 0.9s ease 1.3s forwards;pointer-events:none;}
+@keyframes shimmer{to{transform:translateX(200%);}}
+
+/* Stat bar spring */
+.stat-bar-fill{transition:width 1.15s cubic-bezier(.34,1.56,.64,1) 0.55s !important;}
+
+/* Timeline slot wipe */
+.time-slot{clip-path:inset(0 100% 0 0);transition:clip-path 0.65s cubic-bezier(.16,1,.3,1),background 0.2s;}
+.time-slot.slot-revealed{clip-path:inset(0 0% 0 0);}
+
+/* Score pill physics pop */
+.slot-score-pill{transition:opacity 0.45s cubic-bezier(.34,1.56,.64,1),transform 0.45s cubic-bezier(.34,1.56,.64,1),box-shadow 0.3s !important;}
+.time-slot:hover .slot-score-pill{transform:scale(1.2) rotate(-5deg) !important;}
+
+/* Refresh button ripple */
+.refresh-btn{position:relative;overflow:hidden;}
+.refresh-btn::before{content:'';position:absolute;inset:-2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent);transform:translateX(-200%);transition:transform 0s;}
+.refresh-btn:hover::before{transform:translateX(200%);transition:transform 0.6s ease;}
+
+/* Section header letter-spacing reveal */
+.section-header{overflow:hidden;}
+.section-header-inner{display:inline-block;animation:sectionReveal 0.7s cubic-bezier(.16,1,.3,1) both;}
+@keyframes sectionReveal{from{opacity:0;letter-spacing:8px;transform:translateX(-8px);}to{opacity:1;letter-spacing:3px;transform:translateX(0);}}
+
+/* Scroll-triggered */
+.scroll-reveal{opacity:0;transform:translateY(28px);transition:opacity 0.65s cubic-bezier(.22,1,.36,1),transform 0.65s cubic-bezier(.22,1,.36,1);}
+.scroll-reveal.in-view{opacity:1;transform:translateY(0);}
+
+/* Day label kerning reveal */
+.day-label{animation:none;}
+.day-label.dl-reveal{animation:dayReveal 0.7s cubic-bezier(.16,1,.3,1) both;}
+@keyframes dayReveal{from{opacity:0;letter-spacing:8px;}to{opacity:1;letter-spacing:3px;}}
+
+/* Wave canvas depth */
+#waveCanvas{will-change:transform;}
+
+
+/* ── TIDE SECTION ──────────────────────────────── */
+.tide-section{border-bottom:var(--border);padding-bottom:0;}
+
+/* Tide stat card — 5th card, full-width row below the 4 */
+.tide-card{
+  padding:28px 28px 24px;
+  border-top:var(--border);
+  position:relative;
+  overflow:hidden;
+  cursor:default;
+  transition:background 0.25s;
+}
+.tide-card:hover{background:var(--g850);}
+.tide-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:28px;}
+.tide-meta{flex:0 0 auto;}
+.tide-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--g500);margin-bottom:10px;}
+.tide-value-row{display:flex;align-items:baseline;gap:6px;}
+.tide-value{font-family:'Space Mono',monospace;font-size:30px;font-weight:700;line-height:1;letter-spacing:-1px;}
+.tide-unit{font-size:13px;color:var(--g500);font-weight:400;}
+.tide-state{font-size:11px;color:var(--g500);margin-top:6px;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px;}
+.tide-arrow{display:inline-block;transition:transform 0.6s cubic-bezier(.34,1.56,.64,1);}
+.tide-arrow.rising{transform:rotate(-45deg);}
+.tide-arrow.falling{transform:rotate(45deg);}
+
+/* Extremes list */
+.tide-extremes{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;}
+.tide-extreme{text-align:center;}
+.tide-extreme-type{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--g500);margin-bottom:4px;}
+.tide-extreme-time{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;color:var(--g300);letter-spacing:1px;}
+.tide-extreme-h{font-family:'Space Mono',monospace;font-size:10px;color:var(--g500);margin-top:2px;}
+.tide-extreme.next .tide-extreme-type{color:var(--g300);}
+.tide-extreme.next .tide-extreme-time{color:var(--white);}
+
+/* SVG curve */
+.tide-curve-wrap{position:relative;width:100%;height:72px;}
+#tideCurveSvg{width:100%;height:72px;overflow:visible;}
+.tide-curve-path{fill:none;stroke:#2a2a2a;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
+.tide-curve-path-animated{fill:none;stroke:var(--white);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:2000;stroke-dashoffset:2000;transition:stroke-dashoffset 1.8s cubic-bezier(.16,1,.3,1) 0.3s;}
+.tide-curve-path-animated.drawn{stroke-dashoffset:0;}
+.tide-fill-path{fill:url(#tideGrad);opacity:0;transition:opacity 1s ease 0.8s;}
+.tide-fill-path.drawn{opacity:1;}
+.tide-now-line{stroke:#333;stroke-width:1;stroke-dasharray:3 3;}
+.tide-now-dot{fill:var(--white);transition:r 0.3s cubic-bezier(.34,1.56,.64,1);}
+.tide-now-label{font-family:'Space Mono',monospace;font-size:8px;fill:#555;letter-spacing:1px;}
+.tide-axis-label{font-family:'Space Mono',monospace;font-size:7px;fill:#333;letter-spacing:1px;}
+
+/* Bar at top like stat cards */
+.tide-bar{height:2px;width:100%;margin-bottom:20px;background:#1a1a1a;position:relative;overflow:hidden;}
+.tide-bar-fill{height:100%;background:var(--white);width:0%;transition:width 1.2s cubic-bezier(.34,1.56,.64,1) 0.4s;}
+
 </style>
 </head>
 <body>
@@ -263,6 +404,364 @@ footer{padding:28px 0;border-top:var(--border);margin-top:32px;display:flex;alig
 </div>
 
 <script>
+
+/* ══════════════════════════════════════════════
+   MOTION ENGINE
+══════════════════════════════════════════════ */
+(function(){
+  /* ── Custom cursor ── */
+  const dot  = document.createElement('div'); dot.id  = 'cursor-dot';
+  const ring = document.createElement('div'); ring.id = 'cursor-ring';
+  document.body.append(dot, ring);
+
+  let mx=window.innerWidth/2, my=window.innerHeight/2;
+  let rx=mx, ry=my;
+  let raf;
+
+  document.addEventListener('mousemove', e=>{
+    mx=e.clientX; my=e.clientY;
+    dot.style.left=mx+'px'; dot.style.top=my+'px';
+  });
+  document.addEventListener('mousedown',()=>ring.classList.add('clicking'));
+  document.addEventListener('mouseup',()=>ring.classList.remove('clicking'));
+
+  // Lag ring behind cursor
+  function tickCursor(){
+    rx += (mx-rx)*0.12;
+    ry += (my-ry)*0.12;
+    ring.style.left=rx+'px'; ring.style.top=ry+'px';
+    requestAnimationFrame(tickCursor);
+  }
+  tickCursor();
+
+  document.querySelectorAll('button,input,[data-dir],.stat-card,.time-slot').forEach(el=>{
+    el.addEventListener('mouseenter',()=>ring.classList.add('hovering'));
+    el.addEventListener('mouseleave',()=>ring.classList.remove('hovering'));
+  });
+
+  /* ── Logo wrap ── */
+  const logo = document.querySelector('.logo');
+  if(logo){ logo.innerHTML = '<span class="logo-inner">'+logo.innerHTML+'</span>'; }
+
+  /* ── Hero rating: char split ── */
+  function splitChars(el){
+    if(!el) return;
+    const text = el.textContent.trim();
+    el.innerHTML = text.split('').map((c,i)=>`<span class="char-wrap"><span class="char" style="animation-delay:${0.05+i*0.06}s">${c}</span></span>`).join('');
+  }
+
+  /* ── Magnetic elements ── */
+  function initMagnetics(){
+    document.querySelectorAll('.stat-card,.refresh-btn').forEach(el=>{
+      el.addEventListener('mousemove', e=>{
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width/2, cy = r.top + r.height/2;
+        const dx = (e.clientX - cx) / (r.width/2);
+        const dy = (e.clientY - cy) / (r.height/2);
+        const strength = el.classList.contains('refresh-btn') ? 6 : 4;
+        el.style.transform = `translate(${dx*strength}px,${dy*strength}px) perspective(700px) rotateX(${-dy*3}deg) rotateY(${dx*3}deg) scale(1.01)`;
+      });
+      el.addEventListener('mouseleave', e=>{
+        // spring back
+        el.style.transition = 'transform 0.6s cubic-bezier(.34,1.56,.64,1), background 0.25s';
+        el.style.transform = '';
+        setTimeout(()=>el.style.transition='',650);
+      });
+      el.addEventListener('mouseenter', e=>{
+        el.style.transition = 'transform 0.15s ease, background 0.25s';
+      });
+    });
+  }
+
+  /* ── Scroll parallax for hero rating ── */
+  function initScrollFx(){
+    window.addEventListener('scroll', ()=>{
+      const sy = window.scrollY;
+      const hr = document.getElementById('heroRating');
+      if(hr) hr.style.transform = `translateY(${sy*0.18}px) scale(${1 - sy*0.00015})`;
+      const wc = document.getElementById('waveCanvas');
+      if(wc) wc.style.transform = `translateY(${sy * -0.06}px)`;
+    }, {passive:true});
+  }
+
+  /* ── Timeline slot wipe (staggered) ── */
+  function revealSlots(){
+    document.querySelectorAll('.time-slot').forEach((el,i)=>{
+      setTimeout(()=>el.classList.add('slot-revealed'), 300 + i*80);
+    });
+  }
+
+  /* ── Scroll-reveal observer ── */
+  function initScrollReveal(){
+    document.querySelectorAll('.timeline-section,.day-block').forEach(el=>{
+      el.classList.add('scroll-reveal');
+    });
+    const obs = new IntersectionObserver(entries=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in-view'); obs.unobserve(e.target); }
+      });
+    },{threshold:0.08});
+    document.querySelectorAll('.scroll-reveal').forEach(el=>obs.observe(el));
+  }
+
+  /* ── Day label reveal on scroll ── */
+  function initDayLabels(){
+    const obs = new IntersectionObserver(entries=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('dl-reveal'); obs.unobserve(e.target); }
+      });
+    },{threshold:0.5});
+    document.querySelectorAll('.day-label').forEach(el=>obs.observe(el));
+  }
+
+  /* ── Section header wrap ── */
+  function wrapSectionHeaders(){
+    document.querySelectorAll('.section-header').forEach(el=>{
+      if(!el.querySelector('.section-header-inner'))
+        el.innerHTML = `<span class="section-header-inner">${el.innerHTML}</span>`;
+    });
+  }
+
+  /* ── Refresh button: track mouse for highlight ── */
+  function initBtnFx(){
+    const btn = document.getElementById('refreshBtn');
+    if(!btn) return;
+    btn.addEventListener('mousemove', e=>{
+      const r = btn.getBoundingClientRect();
+      btn.style.setProperty('--rx', ((e.clientX-r.left)/r.width*100)+'%');
+      btn.style.setProperty('--ry', ((e.clientY-r.top)/r.height*100)+'%');
+    });
+  }
+
+  /* ── Wire everything after render ── */
+  window._motionAfterRender = function(){
+    splitChars(document.getElementById('heroRating'));
+    initMagnetics();
+    initScrollFx();
+    revealSlots();
+    initScrollReveal();
+    initDayLabels();
+    wrapSectionHeaders();
+    initBtnFx();
+    // re-attach cursor hovering to new elements
+    document.querySelectorAll('.stat-card,.time-slot,[data-dir]').forEach(el=>{
+      el.addEventListener('mouseenter',()=>ring.classList.add('hovering'));
+      el.addEventListener('mouseleave',()=>ring.classList.remove('hovering'));
+    });
+  };
+})();
+
+
+/* ═══════════════════════════════════════
+   TIDE — WorldTides API
+═══════════════════════════════════════ */
+const TIDE_KEY = 'e0f2dd49-9d09-4bbd-9c12-041b990b5b69';
+const TIDE_CACHE_KEY = 'shakabro_tide_cache';
+const TIDE_CACHE_TTL = 3 * 60 * 60 * 1000;
+
+function getTideCached() {
+  try {
+    const raw = sessionStorage.getItem(TIDE_CACHE_KEY);
+    if (!raw) return null;
+    const {ts, data} = JSON.parse(raw);
+    if (Date.now() - ts > TIDE_CACHE_TTL) return null;
+    return data;
+  } catch { return null; }
+}
+function setTideCache(data) {
+  try { sessionStorage.setItem(TIDE_CACHE_KEY, JSON.stringify({ts:Date.now(), data})); } catch {}
+}
+
+async function fetchTides(force=false) {
+  if (!force) { const c = getTideCached(); if (c) return c; }
+  const url = `https://www.worldtides.info/api/v3?heights&extremes&lat=${LAT}&lon=${LNG}&key=${TIDE_KEY}&days=2&step=900`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Tide API ' + res.status);
+  const data = await res.json();
+  setTideCache(data);
+  return data;
+}
+
+function renderTide(tideData) {
+  const now = Date.now() / 1000; // unix seconds
+  const heights  = tideData.heights  || [];
+  const extremes = tideData.extremes || [];
+
+  // Current height via linear interpolation
+  let curH = 0;
+  for (let i = 0; i < heights.length - 1; i++) {
+    if (heights[i].dt <= now && heights[i+1].dt >= now) {
+      const t = (now - heights[i].dt) / (heights[i+1].dt - heights[i].dt);
+      curH = heights[i].height + t * (heights[i+1].height - heights[i].height);
+      break;
+    }
+  }
+
+  // Rising or falling
+  let rising = true;
+  for (let i = 0; i < heights.length - 1; i++) {
+    if (heights[i].dt <= now && heights[i+1].dt >= now) {
+      rising = heights[i+1].height > heights[i].height;
+      break;
+    }
+  }
+
+  // Next 4 extremes
+  const upcoming = extremes.filter(e => e.dt > now - 1800).slice(0, 4);
+
+  // Filter heights to ±12h window for the curve
+  const win = 12 * 3600;
+  const slice = heights.filter(h => h.dt >= now - win && h.dt <= now + win);
+  if (!slice.length) return;
+
+  const minH = Math.min(...slice.map(h=>h.height));
+  const maxH = Math.max(...slice.map(h=>h.height));
+  const pad  = (maxH - minH) * 0.15 || 0.1;
+  const lo = minH - pad, hi = maxH + pad;
+
+  const W = 1000, H = 60; // SVG coordinate space
+  const toX = dt => ((dt - slice[0].dt) / (slice[slice.length-1].dt - slice[0].dt)) * W;
+  const toY = h  => H - ((h - lo) / (hi - lo)) * H;
+
+  // Build smooth curve path (cubic bezier through points)
+  function smoothPath(pts) {
+    if (!pts.length) return '';
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 1; i < pts.length; i++) {
+      const prev = pts[i-1], cur = pts[i];
+      const cpx = (prev.x + cur.x) / 2;
+      d += ` C ${cpx} ${prev.y}, ${cpx} ${cur.y}, ${cur.x} ${cur.y}`;
+    }
+    return d;
+  }
+
+  const pts = slice.map(h => ({x: toX(h.dt), y: toY(h.height)}));
+  const pathD = smoothPath(pts);
+  const fillD = pathD + ` L ${pts[pts.length-1].x} ${H} L ${pts[0].x} ${H} Z`;
+
+  // Now marker
+  const nowX = toX(now);
+  const nowY = toY(curH);
+
+  // Tide bar fill percent (where in tidal range are we)
+  const tidePct = Math.round(((curH - minH) / (maxH - minH || 1)) * 100);
+
+  // Format time
+  const fmt = dt => new Date(dt*1000).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+
+  const extremeHTML = upcoming.map((e,i) => `
+    <div class="tide-extreme ${i===0?'next':''}">
+      <div class="tide-extreme-type">${e.type}</div>
+      <div class="tide-extreme-time">${fmt(e.dt)}</div>
+      <div class="tide-extreme-h">${e.height.toFixed(2)}m</div>
+    </div>`).join('');
+
+  // Axis labels: every 3h
+  let axisLabels = '';
+  const step = 3 * 3600;
+  const start = slice[0].dt;
+  const end   = slice[slice.length-1].dt;
+  for (let t = Math.ceil(start/step)*step; t <= end; t += step) {
+    const x = toX(t);
+    const lbl = new Date(t*1000).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+    axisLabels += `<text class="tide-axis-label" x="${x}" y="${H+12}" text-anchor="middle">${lbl}</text>`;
+  }
+
+  const html = `
+    <div class="section-header tide-section"><span class="section-header-inner">Tide</span></div>
+    <div class="tide-card fade-up">
+      <div class="tide-bar"><div class="tide-bar-fill" id="tideBarFill" style="width:0%"></div></div>
+      <div class="tide-card-top">
+        <div class="tide-meta">
+          <div class="tide-label">Current Height</div>
+          <div class="tide-value-row">
+            <span class="tide-value" id="tideVal">0.00</span>
+            <span class="tide-unit">m</span>
+          </div>
+          <div class="tide-state">
+            <span class="tide-arrow ${rising?'rising':'falling'}">${rising?'↑':'↓'}</span>
+            <span>${rising ? 'Rising' : 'Falling'}</span>
+          </div>
+        </div>
+        <div class="tide-extremes">${extremeHTML}</div>
+      </div>
+      <div class="tide-curve-wrap">
+        <svg id="tideCurveSvg" viewBox="-10 -8 1020 88" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="tideGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="white" stop-opacity="0.06"/>
+              <stop offset="100%" stop-color="white" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <!-- ghost track -->
+          <path class="tide-curve-path" d="${pathD}"/>
+          <!-- fill -->
+          <path class="tide-fill-path" id="tideFill" d="${fillD}"/>
+          <!-- animated line -->
+          <path class="tide-curve-path-animated" id="tideLine" d="${pathD}"/>
+          <!-- now marker -->
+          <line class="tide-now-line" x1="${nowX}" y1="-4" x2="${nowX}" y2="${H+4}"/>
+          <circle class="tide-now-dot" cx="${nowX}" cy="${nowY}" r="4"/>
+          <!-- axis -->
+          ${axisLabels}
+        </svg>
+      </div>
+    </div>`;
+
+  // Inject after stats grid
+  const statsGrid = document.querySelector('.stats-grid');
+  if (statsGrid) {
+    const tideDiv = document.createElement('div');
+    tideDiv.id = 'tideBlock';
+    tideDiv.innerHTML = html;
+    statsGrid.after(tideDiv);
+  }
+
+  // Animate in
+  requestAnimationFrame(() => {
+    // count-up the tide value
+    const tideValEl = document.getElementById('tideVal');
+    if (tideValEl) {
+      let start = 0, dur = 1200, begin = Date.now();
+      function countUp() {
+        const p = Math.min(1, (Date.now()-begin)/dur);
+        // ease out expo
+        const e = p === 1 ? 1 : 1 - Math.pow(2, -10*p);
+        tideValEl.textContent = (curH * e).toFixed(2);
+        if (p < 1) requestAnimationFrame(countUp);
+        else tideValEl.textContent = curH.toFixed(2);
+      }
+      setTimeout(countUp, 300);
+    }
+
+    // bar fill
+    setTimeout(() => {
+      const bar = document.getElementById('tideBarFill');
+      if (bar) bar.style.width = tidePct + '%';
+    }, 200);
+
+    // fade-up card
+    setTimeout(() => {
+      document.querySelector('.tide-card')?.classList.add('visible');
+    }, 100);
+
+    // curve draw
+    setTimeout(() => {
+      document.getElementById('tideLine')?.classList.add('drawn');
+      document.getElementById('tideFill')?.classList.add('drawn');
+    }, 250);
+
+    // now dot pulse
+    const dot = document.querySelector('.tide-now-dot');
+    if (dot) {
+      setTimeout(() => {
+        dot.style.r = '6';
+        setTimeout(() => { dot.style.r = '4'; }, 350);
+      }, 1400);
+    }
+  });
+}
+
 /* ═══════════════════════════════════════
    WAVE CANVAS — ambient background
 ═══════════════════════════════════════ */
@@ -575,6 +1074,8 @@ function render(data) {
     document.querySelectorAll('.slot-score-pill').forEach((el, i) => {
       setTimeout(() => el.classList.add('visible'), 350 + i * 70);
     });
+    // motion layer
+    setTimeout(() => { if(window._motionAfterRender) window._motionAfterRender(); }, 80);
   });
 }
 
@@ -679,6 +1180,9 @@ async function loadData(forceRefresh = false) {
       render(cached);
       const age = Math.round((Date.now() - JSON.parse(sessionStorage.getItem(CACHE_KEY)).ts) / 60000);
       document.getElementById('timestamp').textContent += ` — cached ${age}m ago`;
+      const tideCached = getTideCached();
+      if (tideCached) renderTide(tideCached);
+      else fetchTides(false).then(td=>{ if(td) renderTide(td); }).catch(()=>{});
       return;
     }
   }
@@ -690,9 +1194,13 @@ async function loadData(forceRefresh = false) {
       <div class="state-message">Reading the ocean</div>
     </div>`;
   try {
-    const data = await fetchWindy(apiKey);
+    const [data, tideData] = await Promise.all([
+      fetchWindy(apiKey),
+      fetchTides(forceRefresh).catch(()=>null)
+    ]);
     setCache(apiKey, data);
     render(data);
+    if (tideData) renderTide(tideData);
   } catch(err) {
     showError('Error: '+err.message);
   } finally {
