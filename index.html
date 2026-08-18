@@ -646,10 +646,43 @@ function showError(msg) {
     </div>`;
 }
 
-async function loadData() {
+const CACHE_KEY = 'shakabro_cache';
+const CACHE_TTL = 3 * 60 * 60 * 1000; // 3 hours
+
+function getCached(apiKey) {
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const { ts, key, data } = JSON.parse(raw);
+    if (key !== apiKey) return null;           // different key — bust cache
+    if (Date.now() - ts > CACHE_TTL) return null; // too old
+    return data;
+  } catch { return null; }
+}
+
+function setCache(apiKey, data) {
+  try {
+    // don't store the huge _windByTs blob under a clean key
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), key: apiKey, data }));
+  } catch { /* storage full — just skip */ }
+}
+
+async function loadData(forceRefresh = false) {
   const btn = document.getElementById('refreshBtn');
   const apiKey = document.getElementById('apiKeyInput').value.trim();
   document.getElementById('errorBanner').classList.remove('visible');
+
+  // Try cache first (unless user explicitly hit Refresh)
+  if (!forceRefresh) {
+    const cached = getCached(apiKey);
+    if (cached) {
+      render(cached);
+      const age = Math.round((Date.now() - JSON.parse(sessionStorage.getItem(CACHE_KEY)).ts) / 60000);
+      document.getElementById('timestamp').textContent += ` — cached ${age}m ago`;
+      return;
+    }
+  }
+
   btn.disabled = true; btn.textContent = '...';
   document.getElementById('mainContent').innerHTML = `
     <div class="state-block">
@@ -658,6 +691,7 @@ async function loadData() {
     </div>`;
   try {
     const data = await fetchWindy(apiKey);
+    setCache(apiKey, data);
     render(data);
   } catch(err) {
     showError('Error: '+err.message);
@@ -666,7 +700,10 @@ async function loadData() {
   }
 }
 
-loadData();
+// Refresh button now forces a fresh fetch
+document.getElementById('refreshBtn').onclick = () => loadData(true);
+
+loadData(false);
 </script>
 </body>
 </html>
