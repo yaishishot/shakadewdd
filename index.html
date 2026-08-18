@@ -875,13 +875,14 @@ function scoreBarrel(waveHeight, period, swellDir, windSpeed, windDir) {
   else if (period >= 9)  periodScore = 0.2;
   else                   periodScore = 0.05;
 
-  // Height: 0.8–1.5m ideal for hollow on this reef
+  // Height: score on FACE height (period+refraction adjusted)
+  const face = faceHeight(waveHeight, period, swellDir);
   let heightScore;
-  if (waveHeight >= 0.8 && waveHeight <= 1.5)      heightScore = 1.0;
-  else if (waveHeight >= 0.6 && waveHeight < 0.8)  heightScore = 0.6;
-  else if (waveHeight > 1.5 && waveHeight <= 2.0)  heightScore = 0.65;
-  else if (waveHeight > 2.0)                        heightScore = 0.3; // closeout territory
-  else                                               heightScore = 0.2;
+  if (face >= 0.8 && face <= 1.6)      heightScore = 1.0;  // ideal hollow face
+  else if (face >= 0.6 && face < 0.8)  heightScore = 0.6;
+  else if (face > 1.6 && face <= 2.2)  heightScore = 0.65; // still can barrel, heavier
+  else if (face > 2.2)                 heightScore = 0.3;  // closeout territory
+  else                                  heightScore = 0.2;
 
   // Swell direction: SE (120–160°) hits the reef angle perfectly
   let dirScore;
@@ -1064,11 +1065,12 @@ function scorePeriod(p) {
 }
 
 function scoreHeight(h) {
-  // 0–25 pts. Ideal 0.9–1.6m, tails off either side.
-  if (h >= 0.9 && h <= 1.6) return 25;
-  if (h > 1.6) return smooth(h, 1.6, 2.4, 25, 8);   // big → closes out
-  if (h >= 0.5) return smooth(h, 0.5, 0.9, 5, 25);
-  return smooth(h, 0, 0.5, 0, 5);
+  // h here is the predicted FACE height (already period+refraction adjusted)
+  // Ideal face 0.8–1.8m, tails off either side
+  if (h >= 0.8 && h <= 1.8) return 25;
+  if (h > 1.8) return smooth(h, 1.8, 2.8, 25, 8);   // big → closes out
+  if (h >= 0.4) return smooth(h, 0.4, 0.8, 4, 25);
+  return smooth(h, 0, 0.4, 0, 4);
 }
 
 function scoreDir(d) {
@@ -1102,8 +1104,35 @@ function scoreWind(windSpeed, windDir) {
   return smooth(windSpeed, 7, 20, 8, 1);
 }
 
+
+/* ═══════════════════════════════════════
+   BREAKING FACE HEIGHT
+   Predicted face = swell1Height × period multiplier × refraction multiplier
+   Specific to Villingili reef geometry
+═══════════════════════════════════════ */
+function faceHeight(swellHeight, period, swellDir) {
+  // Period multiplier — shoaling energy on a shallow reef
+  let pm;
+  if (period >= 12.0)       pm = 1.50;  // heavy groundswell jacking hard
+  else if (period >= 10.0)  pm = 1.25;  // solid groundswell
+  else if (period >= 8.5)   pm = 1.00;  // standard
+  else                      pm = 0.75;  // weak chop, minimal shoal
+
+  // Refraction multiplier — Villingili channel wrap geometry
+  let rm;
+  if (swellDir >= 120 && swellDir <= 160)                                   rm = 0.85; // direct SE, full energy
+  else if ((swellDir >= 110 && swellDir < 120) || (swellDir > 160 && swellDir <= 175)) rm = 0.65; // refracted, partial
+  else                                                                        rm = 0.20; // blocked
+
+  return swellHeight * pm * rm;
+}
+
+function faceHeightFt(swellHeight, period, swellDir) {
+  return faceHeight(swellHeight, period, swellDir) * 3.281;
+}
 function scoreConditions(waveHeight, period, swellDir, windSpeed, windDir) {
-  const raw = scorePeriod(period) + scoreHeight(waveHeight) + scoreDir(swellDir) + scoreWind(windSpeed, windDir);
+  const face = faceHeight(waveHeight, period, swellDir); // predicted breaking face
+  const raw = scorePeriod(period) + scoreHeight(face) + scoreDir(swellDir) + scoreWind(windSpeed, windDir);
   let score = Math.min(10, raw / 10);
 
   // Hard direction cap: if swell1 is NOT from SE quadrant (120–160°),
@@ -1161,15 +1190,17 @@ function barPct(q) { return q==='firing'?100:q==='good'?80:q==='fair'?55:25; }
 
 function buildBreakdown(wh, period, swellDir, windSpeed, windDir, score) {
   const d = degToCompass(swellDir), wd = degToCompass(windDir);
-  const wq = wh >= 1.0 ? `${wh.toFixed(1)}m solid` : `${wh.toFixed(1)}m small`;
+  const face = faceHeight(wh, period, swellDir);
+  const faceFt = (face * 3.281).toFixed(1);
+  const faceStr = `~${face.toFixed(1)}m (${faceFt}ft) face`;
   const dirOk   = swellDir >= 120 && swellDir <= 160;
   const dirMarg = (swellDir >= 90 && swellDir < 120) || (swellDir > 160 && swellDir <= 185);
-  if (!dirOk && !dirMarg) return `Primary swell (S1) from ${d} — wrong angle for this reef. Wait for SE groundswell.`;
-  if (period < 9) return `${wh.toFixed(1)}m ${d} at only ${period.toFixed(1)}s — wind swell, won't hold shape on the reef.`;
-  if (score >= 8) return `${wq} SE groundswell at ${period.toFixed(1)}s — ${wd} wind offshore, reef should be working well.`;
-  if (score >= 6) return `${wq} ${d} swell at ${period.toFixed(1)}s — ${windSpeed > 15 ? 'wind a bit strong but offshore' : 'conditions lining up'}, worth a look.`;
-  if (score >= 4) return `${wq} ${d} primary swell at ${period.toFixed(1)}s — ${dirMarg ? 'swell angle a bit off' : 'period on the low side'}, below ideal.`;
-  return `Primary swell from ${d} at ${period.toFixed(1)}s — not enough to get excited about here.`;
+  if (!dirOk && !dirMarg) return `Primary swell from ${d} — wrong angle for Villingili. Wait for SE groundswell.`;
+  if (period < 9) return `${wh.toFixed(1)}m ${d} at ${period.toFixed(1)}s — wind swell, won't jack on the reef. ${faceStr} predicted.`;
+  if (score >= 8) return `${faceStr} from SE at ${period.toFixed(1)}s — ${wd} offshore wind, reef should be firing.`;
+  if (score >= 6) return `${faceStr} ${d} at ${period.toFixed(1)}s — ${windSpeed > 15 ? 'wind a touch strong' : 'conditions lining up'}, worth a look.`;
+  if (score >= 4) return `${faceStr} ${d} at ${period.toFixed(1)}s — ${dirMarg ? 'swell angle a bit off' : 'period low'}, below ideal for this reef.`;
+  return `${faceStr} predicted from ${d} at ${period.toFixed(1)}s — not enough to get excited about.`;
 }
 
 /* ═══════════════════════════════════════
@@ -1232,8 +1263,9 @@ function timeSlot(s, dayBestScore, idx) {
     <div class="slot-score-pill ${rc}" style="transition-delay:${delay}ms">${s.score.toFixed(1)}</div>
     <div class="slot-tag">${s.rating}</div>
     <div class="slot-detail">
-      S1: ${s.waveHeight.toFixed(1)}m &middot; ${s.wavePeriod.toFixed(1)}s<br>
-      ${degToCompass(s.waveDir)} &middot; ${s.windSpeed.toFixed(1)}kn ${degToCompass(s.windDir)}
+      ${s.waveHeight.toFixed(1)}m S1 &middot; ${s.wavePeriod.toFixed(1)}s<br>
+      Face ~${faceHeight(s.waveHeight,s.wavePeriod,s.waveDir).toFixed(1)}m<br>
+      ${s.windSpeed.toFixed(1)}kn ${degToCompass(s.windDir)}
     </div>
     ${bLabel ? `<div class="slot-barrel ${bClass}">${bLabel} ${bp.pct}%</div>` : ''}
   </div>`;
@@ -1282,7 +1314,8 @@ function render(data) {
   const breakdown = buildBreakdown(current.waveHeight, current.wavePeriod, current.waveDir, current.windSpeed, current.windDir, score);
 
   // stat quality classes — all driven by swell1 fields
-  const swellQ = current.waveHeight >= 1.0 ? 'good' : current.waveHeight >= 0.6 ? 'fair' : 'poor';
+  const curFace = faceHeight(current.waveHeight, current.wavePeriod, current.waveDir);
+  const swellQ = curFace >= 0.9 ? 'good' : curFace >= 0.5 ? 'fair' : 'poor';
   const periodQ = current.wavePeriod >= 11 ? 'good' : current.wavePeriod >= 9 ? 'fair' : 'poor';
   const windQ = (current.windDir >= 240 && current.windDir <= 290 && current.windSpeed <= 15) ? 'good' : current.windSpeed < 8 ? 'fair' : 'poor';
   const dirQ = (current.waveDir >= 120 && current.waveDir <= 160) ? 'good' : (current.waveDir >= 90 && current.waveDir <= 185) ? 'fair' : 'poor';
@@ -1302,9 +1335,14 @@ function render(data) {
 
     <div class="section-header">Conditions Now</div>
     <div class="stats-grid">
-      ${statCard('Primary Swell', current.waveHeight.toFixed(1), 'm',
-          `Swell 1 — ${degToCompass(current.waveDir)} origin`, swellQ, current.waveDir,
-          `<div class="dir-deg" style="margin-top:6px;color:#555">swell1 only — drives rating</div>`)}
+      ${(()=>{
+          const face = faceHeight(current.waveHeight, current.wavePeriod, current.waveDir);
+          const faceFt = (face * 3.281).toFixed(1);
+          return statCard('Primary Swell', current.waveHeight.toFixed(1), 'm',
+            `Face ~${face.toFixed(1)}m (${faceFt}ft) — ${degToCompass(current.waveDir)}`,
+            swellQ, current.waveDir,
+            `<div class="dir-deg" style="margin-top:6px;color:#555">swell1 — face height drives rating</div>`);
+        })()}
       ${statCard('Swell Period', current.wavePeriod.toFixed(1), 's',
           current.wavePeriod >= 11 ? 'Groundswell' : current.wavePeriod >= 9 ? 'Mid-swell' : 'Wind swell',
           periodQ, null)}
