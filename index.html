@@ -360,70 +360,6 @@ header{opacity:0;animation:headerIn 0.85s cubic-bezier(.16,1,.3,1) 0.1s forwards
 .tide-bar-fill{height:100%;background:var(--white);width:0%;transition:width 1.2s cubic-bezier(.34,1.56,.64,1) 0.4s;}
 
 
-/* ── BARREL PREDICTION ─────────────────────────── */
-.barrel-block{
-  margin-top:20px;
-  padding:20px 0 0;
-  border-top:1px solid #111;
-  display:flex;
-  align-items:flex-start;
-  gap:28px;
-  flex-wrap:wrap;
-  opacity:0;
-  transform:translateY(10px);
-  transition:opacity 0.6s cubic-bezier(.22,1,.36,1) 0.4s, transform 0.6s cubic-bezier(.22,1,.36,1) 0.4s;
-}
-.barrel-block.visible{opacity:1;transform:translateY(0);}
-
-/* probability ring — smaller than score ring */
-.barrel-ring-wrap{flex-shrink:0;width:80px;height:80px;}
-.barrel-ring-svg{width:80px;height:80px;}
-.barrel-ring-track{fill:none;stroke:#1a1a1a;stroke-width:5;}
-.barrel-ring-fill{
-  fill:none;stroke-width:5;stroke-linecap:round;
-  stroke-dasharray:220.9;stroke-dashoffset:220.9;
-  transition:stroke-dashoffset 1.4s cubic-bezier(.16,1,.3,1) 0.5s, stroke 0.4s;
-}
-.barrel-ring-pct{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;dominant-baseline:central;text-anchor:middle;fill:white;}
-.barrel-ring-label{font-family:'Space Mono',monospace;font-size:7px;dominant-baseline:central;text-anchor:middle;fill:#555;letter-spacing:1.5;}
-
-.barrel-text{flex:1;min-width:160px;}
-.barrel-headline{
-  font-family:'Space Mono',monospace;
-  font-size:11px;
-  font-weight:700;
-  letter-spacing:2px;
-  text-transform:uppercase;
-  color:var(--g300);
-  margin-bottom:6px;
-}
-.barrel-headline.hot{color:var(--white);}
-.barrel-desc{font-size:12px;color:var(--g500);line-height:1.7;font-family:'Space Grotesk',sans-serif;max-width:420px;}
-
-/* factor bars */
-.barrel-factors{margin-top:12px;display:flex;flex-direction:column;gap:5px;}
-.barrel-factor{display:flex;align-items:center;gap:10px;}
-.barrel-factor-name{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--g500);width:58px;flex-shrink:0;}
-.barrel-factor-track{flex:1;height:1px;background:#1a1a1a;position:relative;}
-.barrel-factor-fill{height:100%;width:0%;background:var(--g500);transition:width 1s cubic-bezier(.34,1.56,.64,1);position:absolute;top:0;left:0;}
-.barrel-factor-fill.on{background:var(--white);}
-.barrel-factor-val{font-family:'Space Mono',monospace;font-size:8px;color:var(--g500);width:28px;text-align:right;flex-shrink:0;}
-
-/* timeline barrel badge */
-.slot-barrel{
-  display:inline-block;
-  font-family:'Space Mono',monospace;
-  font-size:7px;
-  letter-spacing:1.5px;
-  text-transform:uppercase;
-  padding:2px 5px;
-  border:1px solid #2a2a2a;
-  color:var(--g500);
-  margin-top:5px;
-  transition:border-color 0.3s, color 0.3s;
-}
-.slot-barrel.hot{border-color:rgba(255,255,255,0.25);color:var(--g300);}
-.slot-barrel.firing-barrel{border-color:rgba(255,255,255,0.5);color:var(--white);}
 
 </style>
 </head>
@@ -830,25 +766,6 @@ function renderTide(tideData) {
 }
 
 
-/* ═══════════════════════════════════════
-   BARREL PREDICTION
-═══════════════════════════════════════ */
-
-// tideData is stored globally so barrel scoring can use it per-slot
-window._tideData = null;
-
-function getTideHeightAt(unixSec) {
-  const td = window._tideData;
-  if (!td || !td.heights || !td.heights.length) return null;
-  const h = td.heights;
-  for (let i = 0; i < h.length - 1; i++) {
-    if (h[i].dt <= unixSec && h[i+1].dt >= unixSec) {
-      const t = (unixSec - h[i].dt) / (h[i+1].dt - h[i].dt);
-      return h[i].height + t * (h[i+1].height - h[i].height);
-    }
-  }
-  return null;
-}
 
 function getTidalRangeForDay(unixSec) {
   // look at extremes within ±18h of the target time
@@ -863,127 +780,6 @@ function getTidalRangeForDay(unixSec) {
 }
 
 
-
-function scoreBarrel(waveHeight, period, swellDir, windSpeed, windDir) {
-  // Each factor 0–1, then weighted sum → 0–100%
-  // Period: needs 11s+ for the reef to jack
-  let periodScore;
-  if (period >= 13)      periodScore = 1.0;
-  else if (period >= 12) periodScore = 0.9;
-  else if (period >= 11) periodScore = 0.75;
-  else if (period >= 10) periodScore = 0.45;
-  else if (period >= 9)  periodScore = 0.2;
-  else                   periodScore = 0.05;
-
-  // Height: score on FACE height (period+refraction adjusted)
-  const face = faceHeight(waveHeight, period, swellDir);
-  let heightScore;
-  if (face >= 0.8 && face <= 1.6)      heightScore = 1.0;  // ideal hollow face
-  else if (face >= 0.6 && face < 0.8)  heightScore = 0.6;
-  else if (face > 1.6 && face <= 2.2)  heightScore = 0.65; // still can barrel, heavier
-  else if (face > 2.2)                 heightScore = 0.3;  // closeout territory
-  else                                  heightScore = 0.2;
-
-  // Swell direction: SE (120–160°) hits the reef angle perfectly
-  let dirScore;
-  const d = swellDir;
-  if (d >= 125 && d <= 155)      dirScore = 1.0;
-  else if (d >= 110 && d <= 165) dirScore = 0.75;
-  else if (d >= 90  && d <= 180) dirScore = 0.4;
-  else                            dirScore = 0.1;
-
-  // Wind: offshore W/WSW holds the lip
-  const inOff = windDir >= 235 && windDir <= 295;
-  let windScore;
-  if (inOff && windSpeed >= 5 && windSpeed <= 15)      windScore = 1.0;
-  else if (inOff && windSpeed < 5)                     windScore = 0.75; // light offshore still ok
-  else if (inOff && windSpeed > 15)                    windScore = 0.5;  // too strong, messes with entry
-  else if (windSpeed < 6)                              windScore = 0.55; // light any direction passable
-  else                                                  windScore = 0.1;
-
-  // Weighted: period and direction are the biggest factors for hollowness on a reef
-  const raw = (
-    periodScore * 0.35 +
-    dirScore    * 0.30 +
-    windScore   * 0.22 +
-    heightScore * 0.13
-  );
-
-  return {
-    pct: Math.round(raw * 100),
-    factors: {
-      period:  Math.round(periodScore * 100),
-      dir:     Math.round(dirScore    * 100),
-      wind:    Math.round(windScore   * 100),
-      height:  Math.round(heightScore * 100),
-    }
-  };
-}
-
-function barrelLabel(pct) {
-  if (pct >= 80) return 'LIKELY BARRELLING';
-  if (pct >= 60) return 'POSSIBLE BARRELS';
-  if (pct >= 40) return 'OCCASIONAL SECTIONS';
-  if (pct >= 20) return 'MOSTLY CRUMBLING';
-  return 'NOT TODAY';
-}
-
-function barrelDesc(pct, period, waveHeight, swellDir, windDir, windSpeed) {
-  const d = degToCompass(swellDir), wd = degToCompass(windDir);
-  if (pct >= 80) return `${waveHeight.toFixed(1)}m ${d} groundswell at ${period.toFixed(1)}s with ${wd} wind — reef is going to throw. Expect proper barrels on the sets.`;
-  if (pct >= 60) return `${period.toFixed(1)}s ${d} swell has the period to jack on the reef. Wind and angle are lining up — hollow sections on the better sets.`;
-  if (pct >= 40) {
-    const weak = period < 11 ? 'Period too short to jack properly' : swellDir < 110 || swellDir > 165 ? 'Swell angle missing the reef' : 'Wind conditions limiting it';
-    return `${weak}. Might see the odd square section but mostly walls.`;
-  }
-  if (pct >= 20) return `Conditions aren't right for this reef today — ${period < 10 ? 'period too short' : 'swell angle off'}, waves will crumble rather than pitch.`;
-  return `Nothing to get excited about. Check back when the SE swell fills in.`;
-}
-
-function renderBarrelBlock(wh, period, swellDir, windSpeed, windDir) {
-  const {pct, factors} = scoreBarrel(wh, period, swellDir, windSpeed, windDir);
-  const label = barrelLabel(pct);
-  const desc  = barrelDesc(pct, period, wh, swellDir, windDir, windSpeed);
-  const isHot = pct >= 60;
-  const circ  = 220.9;
-  const offset = circ - (circ * pct / 100);
-
-  // stroke color based on probability
-  const stroke = pct >= 70 ? '#ffffff' : pct >= 50 ? '#aaaaaa' : pct >= 30 ? '#555555' : '#2a2a2a';
-
-  const factorRows = [
-    {name:'Period', val:factors.period},
-    {name:'Dir',    val:factors.dir},
-    {name:'Wind',   val:factors.wind},
-    {name:'Height', val:factors.height},
-  ].map(f => `
-    <div class="barrel-factor">
-      <span class="barrel-factor-name">${f.name}</span>
-      <div class="barrel-factor-track">
-        <div class="barrel-factor-fill ${f.val >= 60 ? 'on' : ''}" id="bfill-${f.name}" style="width:0%"></div>
-      </div>
-      <span class="barrel-factor-val">${f.val}%</span>
-    </div>`).join('');
-
-  return {pct, html: `
-    <div class="barrel-block" id="barrelBlock">
-      <div class="barrel-ring-wrap">
-        <svg class="barrel-ring-svg" viewBox="0 0 80 80">
-          <circle class="barrel-ring-track" cx="40" cy="40" r="35"/>
-          <circle class="barrel-ring-fill" id="barrelRingFill" cx="40" cy="40" r="35"
-            stroke="${stroke}" transform="rotate(-90 40 40)"
-            style="stroke-dashoffset:${circ}"/>
-          <text class="barrel-ring-pct" x="40" y="37">${pct}%</text>
-          <text class="barrel-ring-label" x="40" y="51">BARREL</text>
-        </svg>
-      </div>
-      <div class="barrel-text">
-        <div class="barrel-headline ${isHot ? 'hot' : ''}">${label}</div>
-        <div class="barrel-desc">${desc}</div>
-        <div class="barrel-factors">${factorRows}</div>
-      </div>
-    </div>`};
-}
 
 /* ═══════════════════════════════════════
    WAVE CANVAS — ambient background
@@ -1255,9 +1051,6 @@ function timeSlot(s, dayBestScore, idx) {
   const isBest = s.score === dayBestScore && s.score >= 5;
   const rc = ratingClass(s.rating);
   const delay = idx * 80;
-  const bp = scoreBarrel(s.waveHeight, s.wavePeriod, s.waveDir, s.windSpeed, s.windDir);
-  const bClass = bp.pct >= 70 ? 'firing-barrel' : bp.pct >= 50 ? 'hot' : '';
-  const bLabel = bp.pct >= 70 ? 'BARREL' : bp.pct >= 50 ? 'HOLLOW' : bp.pct >= 30 ? 'SECTIONS' : '';
   return `<div class="time-slot ${isBest?'best-window':''}">
     <div class="slot-time">${String(s.targetHour).padStart(2,'0')}:00</div>
     <div class="slot-score-pill ${rc}" style="transition-delay:${delay}ms">${s.score.toFixed(1)}</div>
@@ -1267,7 +1060,6 @@ function timeSlot(s, dayBestScore, idx) {
       Face ~${faceHeight(s.waveHeight,s.wavePeriod,s.waveDir).toFixed(1)}m<br>
       ${s.windSpeed.toFixed(1)}kn ${degToCompass(s.windDir)}
     </div>
-    ${bLabel ? `<div class="slot-barrel ${bClass}">${bLabel} ${bp.pct}%</div>` : ''}
   </div>`;
 }
 
@@ -1330,7 +1122,6 @@ function render(data) {
         ${scoreRing(score, rating)}
         <div class="hero-breakdown" id="heroBreakdown">${breakdown}</div>
       </div>
-      ${(()=>{ const b=renderBarrelBlock(current.waveHeight,current.wavePeriod,current.waveDir,current.windSpeed,current.windDir); window._pendingBarrel=b; return b.html; })()}
     </div>
 
     <div class="section-header">Conditions Now</div>
@@ -1401,22 +1192,6 @@ function render(data) {
     document.querySelectorAll('.slot-score-pill').forEach((el, i) => {
       setTimeout(() => el.classList.add('visible'), 350 + i * 70);
     });
-    // barrel block
-    setTimeout(() => {
-      const bb = document.getElementById('barrelBlock');
-      if (bb) bb.classList.add('visible');
-      const rf = document.getElementById('barrelRingFill');
-      if (rf && window._pendingBarrel) {
-        const circ = 220.9;
-        rf.style.strokeDashoffset = circ - (circ * window._pendingBarrel.pct / 100);
-      }
-      // factor bars
-      document.querySelectorAll('[id^="bfill-"]').forEach((el,i) => {
-        const target = el.parentElement.nextElementSibling?.textContent || '';
-        const pct = parseInt(target) || 0;
-        setTimeout(() => { el.style.width = pct + '%'; }, i * 80);
-      });
-    }, 500);
     // motion layer
     setTimeout(() => { if(window._motionAfterRender) window._motionAfterRender(); }, 80);
   });
