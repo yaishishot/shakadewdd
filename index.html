@@ -361,6 +361,21 @@ header{opacity:0;animation:headerIn 0.85s cubic-bezier(.16,1,.3,1) 0.1s forwards
 
 
 
+
+/* ── BREAK TABS ──────────────────────────────── */
+.break-tabs{display:flex;gap:0;border-bottom:var(--border);margin-bottom:0;}
+.break-tab{
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  padding:14px 24px;color:var(--g500);cursor:none;border:none;background:none;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:color 0.2s, border-color 0.25s cubic-bezier(.34,1.56,.64,1);
+  position:relative;
+}
+.break-tab:hover{color:var(--g300);}
+.break-tab.active{color:var(--white);border-bottom-color:var(--white);}
+.break-tab .tab-sub{display:block;font-size:7px;letter-spacing:1px;color:var(--g500);margin-top:2px;}
+.break-tab.active .tab-sub{color:var(--g500);}
+
 </style>
 </head>
 <body>
@@ -378,14 +393,26 @@ header{opacity:0;animation:headerIn 0.85s cubic-bezier(.16,1,.3,1) 0.1s forwards
         <span class="api-label">API Key</span>
         <input class="api-input" id="apiKeyInput" type="text" value="xZo08dHJoSMGFxBFi9Tp2TQ38qEIBb3B" spellcheck="false" autocomplete="off">
       </div>
-      <button class="refresh-btn" id="refreshBtn" onclick="loadData()">Load</button>
+      <button class="refresh-btn" id="refreshBtn">Load</button>
     </div>
   </header>
 
+  <!-- BREAK TABS -->
+  <div class="break-tabs">
+    <button class="break-tab active" id="tab-villingili" onclick="switchBreak('villingili')">
+      Villingili
+      <span class="tab-sub">4.173 N / 73.488 E</span>
+    </button>
+    <button class="break-tab" id="tab-raalhugandu" onclick="switchBreak('raalhugandu')">
+      Raalhugandu
+      <span class="tab-sub">4.176 N / 73.509 E</span>
+    </button>
+  </div>
+
   <!-- LOCATION BAR -->
   <div class="location-bar">
-    <span class="location-name">Villingili, Maldives</span>
-    <span class="location-coords">4.173 N / 73.488 E</span>
+    <span class="location-name" id="locationName">Villingili, Maldives</span>
+    <span class="location-coords" id="locationCoords">4.173 N / 73.488 E</span>
     <span class="timestamp" id="timestamp">—</span>
   </div>
 
@@ -401,7 +428,7 @@ header{opacity:0;animation:headerIn 0.85s cubic-bezier(.16,1,.3,1) 0.1s forwards
 
   <footer>
     <span class="footer-note">Windy Point Forecast — GFSWave + GFS</span>
-    <span class="footer-note">Villingili Break</span>
+    <span class="footer-note" id="footerBreak">Villingili Break</span>
   </footer>
 </div>
 
@@ -827,10 +854,130 @@ function getTidalRangeForDay(unixSec) {
   window.setWaveColor = function(r,g,b) { ratingColor = [r,g,b]; };
 })();
 
+
+/* ═══════════════════════════════════════
+   BREAK CONFIGS
+═══════════════════════════════════════ */
+const BREAKS = {
+  villingili: {
+    name: 'Villingili',
+    location: 'Villingili, Maldives',
+    coords: '4.173 N / 73.488 E',
+    lat: 4.173,
+    lon: 73.488,
+    footer: 'Villingili Break — Reef',
+    // Scoring overrides — uses main scorePeriod/scoreWind but own scoreDir + caps
+    scoreDir(d) {
+      if (d >= 120 && d <= 155) return 25;
+      if (d > 155) return smooth(d, 155, 185, 25, 5);
+      if (d >= 95) return smooth(d, 95, 120, 5, 25);
+      return smooth(d, 70, 95, 0, 5);
+    },
+    faceHeight(h, period, dir) {
+      let pm = period >= 12 ? 1.50 : period >= 10 ? 1.25 : period >= 8.5 ? 1.00 : 0.75;
+      let rm = (dir >= 120 && dir <= 160) ? 0.85
+             : ((dir >= 110 && dir < 120) || (dir > 160 && dir <= 175)) ? 0.65
+             : 0.20;
+      return h * pm * rm;
+    },
+    dirCap(dir, score) {
+      if (dir < 90 || dir > 185)  return Math.min(score, 4.7);
+      if ((dir >= 90 && dir < 120) || (dir > 160 && dir <= 185)) return Math.min(score, 6.7);
+      return score;
+    },
+    dirQualLabel(d) {
+      return d >= 120 && d <= 160 ? 'Ideal SE window' : d >= 90 && d <= 185 ? 'Marginal angle' : 'Wrong direction';
+    },
+    swellCardLabel: 'Primary Swell',
+    dirCardLabel: 'Swell 1 Dir',
+    dirIdealNote: 'ideal: 120–160° SE',
+    windIdealNote: 'ideal: W/WSW 240–290°',
+  },
+  raalhugandu: {
+    name: 'Raalhugandu',
+    location: 'Raalhugandu, Malé',
+    coords: '4.176 N / 73.509 E',
+    lat: 4.176,
+    lon: 73.509,
+    footer: 'Raalhugandu — Reef · Left & Right',
+    // Wider swell window: E, SE, S — 56°–186°
+    scoreDir(d) {
+      // Core window 90–186°, best 110–155°
+      if (d >= 90 && d <= 186) {
+        if (d >= 110 && d <= 155) return 25;          // ideal SE
+        if (d > 155) return smooth(d, 155, 186, 25, 14); // S — still good
+        return smooth(d, 56, 110, 8, 25);              // E — works but not best
+      }
+      if (d >= 56 && d < 90) return smooth(d, 30, 56, 0, 8); // E-NE, marginal
+      return smooth(d, 186, 220, 14, 2);               // SSW, losing it
+    },
+    faceHeight(h, period, dir) {
+      let pm = period >= 12 ? 1.40 : period >= 10 ? 1.20 : period >= 8.5 ? 1.00 : 0.80;
+      // More forgiving refraction — breaks left and right, wider reef geometry
+      let rm = (dir >= 90 && dir <= 186) ? 0.90
+             : ((dir >= 56 && dir < 90) || (dir > 186 && dir <= 210)) ? 0.65
+             : 0.30;
+      return h * pm * rm;
+    },
+    dirCap(dir, score) {
+      // More forgiving — only truly wrong angles get capped
+      if (dir < 56 || dir > 220) return Math.min(score, 4.7);
+      if ((dir >= 56 && dir < 90) || (dir > 186 && dir <= 220)) return Math.min(score, 6.7);
+      return score;
+    },
+    dirQualLabel(d) {
+      if (d >= 110 && d <= 155) return 'Ideal SE window';
+      if (d >= 56 && d <= 186)  return 'Within swell window';
+      return 'Outside swell window';
+    },
+    swellCardLabel: 'Primary Swell',
+    dirCardLabel: 'Swell 1 Dir',
+    dirIdealNote: 'ideal: 56–186° E/SE/S',
+    windIdealNote: 'ideal: SW/W/NW 210–340°',
+    // Wind scoring override — wider offshore window 210–340°
+    scoreWind(windSpeed, windDir) {
+      const inOff = windDir >= 210 && windDir <= 340;
+      let dirFactor;
+      if (windDir >= 215 && windDir <= 335)     dirFactor = 1.0;
+      else if (windDir >= 210 && windDir < 215) dirFactor = smooth(windDir, 210, 215, 0.6, 1.0);
+      else if (windDir > 335 && windDir <= 340) dirFactor = smooth(windDir, 335, 340, 1.0, 0.6);
+      else                                       dirFactor = 0;
+
+      let speedFactor;
+      if (windSpeed >= 5 && windSpeed <= 16)  speedFactor = 1.0;
+      else if (windSpeed < 5)                 speedFactor = smooth(windSpeed, 0, 5, 0.5, 1.0);
+      else                                    speedFactor = smooth(windSpeed, 16, 24, 1.0, 0.3);
+
+      if (inOff) return 20 * dirFactor * speedFactor;
+      if (windSpeed < 7) return smooth(windSpeed, 0, 7, 6, 9);
+      return smooth(windSpeed, 7, 20, 8, 1);
+    },
+  }
+};
+
+let activeBreak = 'villingili';
+
+function getBreak() { return BREAKS[activeBreak]; }
+
+function switchBreak(id) {
+  if (id === activeBreak) return;
+  activeBreak = id;
+  // update tabs
+  document.querySelectorAll('.break-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id)?.classList.add('active');
+  // update location bar
+  const b = getBreak();
+  document.getElementById('locationName').textContent  = b.location;
+  document.getElementById('locationCoords').textContent = b.coords;
+  document.getElementById('footerBreak').textContent    = b.footer;
+  // reload data for new break
+  loadData(false);
+}
+
 /* ═══════════════════════════════════════
    CONSTANTS
 ═══════════════════════════════════════ */
-const LAT = 4.173, LNG = 73.488;
+// LAT/LNG are now dynamic — use getBreak().lat / getBreak().lon
 const TIMES = [8, 11, 14, 17];
 
 /* ═══════════════════════════════════════
@@ -869,13 +1016,7 @@ function scoreHeight(h) {
   return smooth(h, 0, 0.4, 0, 4);
 }
 
-function scoreDir(d) {
-  // 0–25 pts. Core window 120–155, soft edges to 95 and 185.
-  if (d >= 120 && d <= 155) return 25;
-  if (d > 155) return smooth(d, 155, 185, 25, 5);
-  if (d >= 95) return smooth(d, 95,  120, 5,  25);
-  return smooth(d, 70, 95, 0, 5);
-}
+function scoreDir(d) { return getBreak().scoreDir(d); }
 
 function scoreWind(windSpeed, windDir) {
   // 0–20 pts. Offshore W/WSW (235–295) + moderate speed is ideal.
@@ -907,42 +1048,22 @@ function scoreWind(windSpeed, windDir) {
    Specific to Villingili reef geometry
 ═══════════════════════════════════════ */
 function faceHeight(swellHeight, period, swellDir) {
-  // Period multiplier — shoaling energy on a shallow reef
-  let pm;
-  if (period >= 12.0)       pm = 1.50;  // heavy groundswell jacking hard
-  else if (period >= 10.0)  pm = 1.25;  // solid groundswell
-  else if (period >= 8.5)   pm = 1.00;  // standard
-  else                      pm = 0.75;  // weak chop, minimal shoal
-
-  // Refraction multiplier — Villingili channel wrap geometry
-  let rm;
-  if (swellDir >= 120 && swellDir <= 160)                                   rm = 0.85; // direct SE, full energy
-  else if ((swellDir >= 110 && swellDir < 120) || (swellDir > 160 && swellDir <= 175)) rm = 0.65; // refracted, partial
-  else                                                                        rm = 0.20; // blocked
-
-  return swellHeight * pm * rm;
+  return getBreak().faceHeight(swellHeight, period, swellDir);
 }
-
 function faceHeightFt(swellHeight, period, swellDir) {
   return faceHeight(swellHeight, period, swellDir) * 3.281;
 }
 function scoreConditions(waveHeight, period, swellDir, windSpeed, windDir) {
-  const face = faceHeight(waveHeight, period, swellDir); // predicted breaking face
-  const raw = scorePeriod(period) + scoreHeight(face) + scoreDir(swellDir) + scoreWind(windSpeed, windDir);
-  let score = Math.min(10, raw / 10);
+  const b    = getBreak();
+  const face = b.faceHeight(waveHeight, period, swellDir);
+  const windScore = b.scoreWind ? b.scoreWind(windSpeed, windDir) : scoreWind(windSpeed, windDir);
+  const raw  = scorePeriod(period) + scoreHeight(face) + b.scoreDir(swellDir) + windScore;
+  let score  = Math.min(10, raw / 10);
 
-  // Hard direction cap: if swell1 is NOT from SE quadrant (120–160°),
-  // the reef won't work regardless of other factors.
-  // Outside 90–185° = wrong angle entirely → cap at POOR (4.7)
-  // In 90–120 or 160–185 = marginal angle → cap at FAIR (6.7)
-  if (swellDir < 90 || swellDir > 185) {
-    score = Math.min(score, 4.7);
-  } else if ((swellDir >= 90 && swellDir < 120) || (swellDir > 160 && swellDir <= 185)) {
-    score = Math.min(score, 6.7);
-  }
+  // Break-specific direction cap
+  score = b.dirCap(swellDir, score);
 
-  // Period cap: swell1 under 9s means it's wind swell, not groundswell
-  // Can't rate above FAIR no matter what else is happening
+  // Universal period cap: under 9s = wind swell, can't rate above POOR
   if (period < 9) score = Math.min(score, 4.7);
 
   return score;
@@ -989,9 +1110,11 @@ function buildBreakdown(wh, period, swellDir, windSpeed, windDir, score) {
   const face = faceHeight(wh, period, swellDir);
   const faceFt = (face * 3.281).toFixed(1);
   const faceStr = `~${face.toFixed(1)}m (${faceFt}ft) face`;
-  const dirOk   = swellDir >= 120 && swellDir <= 160;
-  const dirMarg = (swellDir >= 90 && swellDir < 120) || (swellDir > 160 && swellDir <= 185);
-  if (!dirOk && !dirMarg) return `Primary swell from ${d} — wrong angle for Villingili. Wait for SE groundswell.`;
+  const _br = getBreak();
+  const dirOk   = activeBreak === 'raalhugandu' ? (swellDir >= 90 && swellDir <= 186) : (swellDir >= 120 && swellDir <= 160);
+  const dirMarg = activeBreak === 'raalhugandu' ? ((swellDir >= 56 && swellDir < 90) || (swellDir > 186 && swellDir <= 220))
+                                                 : ((swellDir >= 90 && swellDir < 120) || (swellDir > 160 && swellDir <= 185));
+  if (!dirOk && !dirMarg) return `Primary swell from ${d} — wrong angle for ${_br.name}. Wait for ${activeBreak === 'raalhugandu' ? 'E/SE/S' : 'SE'} groundswell.`;
   if (period < 9) return `${wh.toFixed(1)}m ${d} at ${period.toFixed(1)}s — wind swell, won't jack on the reef. ${faceStr} predicted.`;
   if (score >= 8) return `${faceStr} from SE at ${period.toFixed(1)}s — ${wd} offshore wind, reef should be firing.`;
   if (score >= 6) return `${faceStr} ${d} at ${period.toFixed(1)}s — ${windSpeed > 15 ? 'wind a touch strong' : 'conditions lining up'}, worth a look.`;
@@ -1109,10 +1232,18 @@ function render(data) {
   const curFace = faceHeight(current.waveHeight, current.wavePeriod, current.waveDir);
   const swellQ = curFace >= 0.9 ? 'good' : curFace >= 0.5 ? 'fair' : 'poor';
   const periodQ = current.wavePeriod >= 11 ? 'good' : current.wavePeriod >= 9 ? 'fair' : 'poor';
-  const windQ = (current.windDir >= 240 && current.windDir <= 290 && current.windSpeed <= 15) ? 'good' : current.windSpeed < 8 ? 'fair' : 'poor';
-  const dirQ = (current.waveDir >= 120 && current.waveDir <= 160) ? 'good' : (current.waveDir >= 90 && current.waveDir <= 185) ? 'fair' : 'poor';
+  const _b = getBreak();
+  const _offMin = _b === BREAKS.raalhugandu ? 210 : 240;
+  const _offMax = _b === BREAKS.raalhugandu ? 340 : 290;
+  const windQ = (current.windDir >= _offMin && current.windDir <= _offMax && current.windSpeed <= 18) ? 'good' : current.windSpeed < 8 ? 'fair' : 'poor';
+  const _dirGoodMin = activeBreak === 'raalhugandu' ? 90  : 120;
+  const _dirGoodMax = activeBreak === 'raalhugandu' ? 186 : 160;
+  const _dirFairMin = activeBreak === 'raalhugandu' ? 56  : 90;
+  const _dirFairMax = activeBreak === 'raalhugandu' ? 220 : 185;
+  const dirQ = (current.waveDir >= _dirGoodMin && current.waveDir <= _dirGoodMax) ? 'good'
+             : (current.waveDir >= _dirFairMin && current.waveDir <= _dirFairMax) ? 'fair' : 'poor';
 
-  const dirQualLabel = d => d >= 120 && d <= 160 ? 'Ideal SE window' : d >= 90 && d <= 185 ? 'Marginal angle' : 'Wrong direction';
+  const dirQualLabel = d => getBreak().dirQualLabel(d);
 
   document.getElementById('mainContent').innerHTML = `
     <div class="hero">
@@ -1127,9 +1258,10 @@ function render(data) {
     <div class="section-header">Conditions Now</div>
     <div class="stats-grid">
       ${(()=>{
+          const br = getBreak();
           const face = faceHeight(current.waveHeight, current.wavePeriod, current.waveDir);
           const faceFt = (face * 3.281).toFixed(1);
-          return statCard('Primary Swell', current.waveHeight.toFixed(1), 'm',
+          return statCard(br.swellCardLabel, current.waveHeight.toFixed(1), 'm',
             `Face ~${face.toFixed(1)}m (${faceFt}ft) — ${degToCompass(current.waveDir)}`,
             swellQ, current.waveDir,
             `<div class="dir-deg" style="margin-top:6px;color:#555">swell1 — face height drives rating</div>`);
@@ -1140,10 +1272,10 @@ function render(data) {
       ${statCard('Wind', current.windSpeed.toFixed(1), 'kn',
           `${degToCompass(current.windDir)} — ${Math.round(current.windDir)}&deg;`,
           windQ, current.windDir,
-          `<div class="dir-deg" style="margin-top:6px;color:#555">ideal: W/WSW 240–290&deg;</div>`)}
-      ${statCard('Swell 1 Dir', Math.round(current.waveDir), '&deg;',
+          `<div class="dir-deg" style="margin-top:6px;color:#555">${getBreak().windIdealNote}</div>`)}
+      ${statCard(getBreak().dirCardLabel, Math.round(current.waveDir), '&deg;',
           dirQualLabel(current.waveDir), dirQ, current.waveDir,
-          `<div class="dir-deg" style="margin-top:6px;color:#555">ideal: 120–160&deg; SE</div>`)}
+          `<div class="dir-deg" style="margin-top:6px;color:#555">${getBreak().dirIdealNote}</div>`)}
     </div>
 
     <div class="timeline-section">
@@ -1201,7 +1333,7 @@ function render(data) {
    API + DATA
 ═══════════════════════════════════════ */
 async function fetchWindy(apiKey) {
-  const base = {lat:LAT, lon:LNG, levels:['surface'], key:apiKey};
+  const b = getBreak(); const base = {lat:b.lat, lon:b.lon, levels:['surface'], key:apiKey};
   const [waveRes, windRes] = await Promise.all([
     fetch('https://api.windy.com/api/point-forecast/v2',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({...base, model:'gfsWave', parameters:['waves','swell1','swell2']})}),
@@ -1282,12 +1414,13 @@ function showError(msg) {
     </div>`;
 }
 
-const CACHE_KEY = 'shakabro_cache';
+const CACHE_KEY_BASE = 'shakabro_cache';
+function getCacheKey(){ return CACHE_KEY_BASE + '_' + activeBreak; }
 const CACHE_TTL = 3 * 60 * 60 * 1000; // 3 hours
 
 function getCached(apiKey) {
   try {
-    const raw = sessionStorage.getItem(CACHE_KEY);
+    const raw = sessionStorage.getItem(getCacheKey());
     if (!raw) return null;
     const { ts, key, data } = JSON.parse(raw);
     if (key !== apiKey) return null;           // different key — bust cache
@@ -1299,7 +1432,7 @@ function getCached(apiKey) {
 function setCache(apiKey, data) {
   try {
     // don't store the huge _windByTs blob under a clean key
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), key: apiKey, data }));
+    sessionStorage.setItem(getCacheKey(), JSON.stringify({ ts: Date.now(), key: apiKey, data }));
   } catch { /* storage full — just skip */ }
 }
 
@@ -1313,7 +1446,7 @@ async function loadData(forceRefresh = false) {
     const cached = getCached(apiKey);
     if (cached) {
       render(cached);
-      const age = Math.round((Date.now() - JSON.parse(sessionStorage.getItem(CACHE_KEY)).ts) / 60000);
+      const age = Math.round((Date.now() - JSON.parse(sessionStorage.getItem(getCacheKey())).ts) / 60000);
       document.getElementById('timestamp').textContent += ` — cached ${age}m ago`;
       const tideCached = getTideCached();
       if (tideCached) renderTide(tideCached);
@@ -1345,6 +1478,7 @@ async function loadData(forceRefresh = false) {
 
 // Refresh button now forces a fresh fetch
 document.getElementById('refreshBtn').onclick = () => loadData(true);
+document.getElementById('refreshBtn').addEventListener('click', ()=>{});
 
 loadData(false);
 </script>
